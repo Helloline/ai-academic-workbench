@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI辅助学术研究工作台</title>
+    <title>AI辅助学术研究工作台（离线版）</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -123,6 +123,15 @@
         }
         .current-project-info strong {
             color: #333;
+        }
+        .offline-badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
         }
         /* 主内容区 */
         .main-content {
@@ -388,6 +397,10 @@
             font-size: 12px;
             color: #999;
         }
+        .input-area .hint .offline-tag {
+            color: #4caf50;
+            font-weight: 600;
+        }
         /* 弹窗 */
         .modal-overlay {
             position: fixed;
@@ -473,6 +486,38 @@
             vertical-align: middle;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: #fff;
+            border-radius: 12px;
+            max-width: 900px;
+            margin: 0 auto 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .typing-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #bbb;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        .export-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .export-section button {
+            width: auto;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -480,19 +525,8 @@
         <!-- 侧边栏 -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h1>🔬 AI学术工作台</h1>
-                <p>系统化使用大模型辅助科研</p>
-            </div>
-
-            <!-- API设置 -->
-            <div class="sidebar-section">
-                <h3>API 设置</h3>
-                <div class="form-group">
-                    <input type="text" id="apiBaseUrl" placeholder="API Base URL" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;font-size:13px;">
-                    <input type="password" id="apiKey" placeholder="API Key" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;font-size:13px;">
-                    <input type="text" id="apiModel" placeholder="模型名称" value="deepseek-chat" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;font-size:13px;">
-                    <button class="btn btn-secondary btn-small" onclick="saveApiConfig()" style="width:auto;">💾 保存配置</button>
-                </div>
+                <h1>🔬 AI学术工作台 <span class="offline-badge">离线可用</span></h1>
+                <p>无需联网，打开即用</p>
             </div>
 
             <!-- 新建项目 -->
@@ -502,14 +536,28 @@
 
             <!-- 项目列表 -->
             <div class="sidebar-section">
-                <h3>项目列表</h3>
+                <h3>📁 项目列表</h3>
                 <div id="projectList"></div>
             </div>
 
             <!-- 当前项目信息 -->
             <div class="sidebar-section" id="currentProjectSection" style="display:none;">
-                <h3>当前项目</h3>
+                <h3>📋 当前项目</h3>
                 <div class="current-project-info" id="currentProjectInfo"></div>
+                <div class="export-section">
+                    <button class="btn btn-secondary btn-small" onclick="exportProject()">📥 导出项目</button>
+                    <button class="btn btn-secondary btn-small" onclick="document.getElementById('importFile').click()">📤 导入项目</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importProject(event)">
+                </div>
+            </div>
+
+            <!-- 数据管理 -->
+            <div class="sidebar-section">
+                <h3>💾 数据管理</h3>
+                <button class="btn btn-secondary btn-small" onclick="exportAllData()">📥 导出全部数据</button>
+                <button class="btn btn-secondary btn-small" onclick="document.getElementById('importAllFile').click()">📤 导入全部数据</button>
+                <input type="file" id="importAllFile" accept=".json" style="display:none;" onchange="importAllData(event)">
+                <button class="btn btn-danger btn-small" onclick="clearAllData()" style="margin-top:8px;">🗑️ 清空所有数据</button>
             </div>
         </div>
 
@@ -518,7 +566,8 @@
             <!-- 欢迎页 -->
             <div class="welcome-page" id="welcomePage">
                 <h2>🎓 欢迎使用AI辅助学术研究工作台</h2>
-                <p>本工具专为<strong>生物信息学/生命科学研究生</strong>设计，帮助你在科研中系统化地使用大模型完成文献调研、方法对比、代码辅助和论文写作等任务。</p>
+                <p>本工具专为<strong>生物信息学/生命科学研究生</strong>设计，帮助你在科研中系统化地使用结构化提示词完成文献调研、方法对比、代码辅助和论文写作等任务。</p>
+                <p><strong style="color:#4caf50;">✅ 完全离线运行</strong> — 无需API Key、无需联网、无需安装任何软件，双击打开即可使用。</p>
                 <p>核心价值是<strong>将零散的提问行为转化为标准化的可复用工作流</strong>。</p>
                 <table>
                     <tr><th>阶段</th><th>用途</th></tr>
@@ -528,7 +577,7 @@
                     <tr><td>🔬 数据分析</td><td>辅助生成、调试、解释代码</td></tr>
                     <tr><td>✍️ 论文写作</td><td>生成大纲、段落、PPT结构</td></tr>
                 </table>
-                <p style="font-size:14px;color:#999;margin-top:20px;">💡 提示：所有数据保存在浏览器本地存储中，保护研究隐私。<br>点击左侧「新建项目」开始你的第一个研究项目。</p>
+                <p style="font-size:14px;color:#999;margin-top:20px;">💡 提示：所有数据保存在浏览器本地存储中，支持导出/导入备份。<br>点击左侧「新建项目」开始你的第一个研究项目。</p>
             </div>
 
             <!-- 项目工作区 -->
@@ -554,8 +603,8 @@
                 <div class="input-area">
                     <textarea id="chatInput" placeholder="在此输入内容，或从上方选择模板..."></textarea>
                     <div class="input-actions">
-                        <span class="hint">支持 Markdown 格式，AI 回复将自动解析表格和代码块</span>
-                        <button class="btn btn-primary" onclick="sendMessage()" style="width:auto;" id="sendBtn">🚀 发送</button>
+                        <span class="hint"><span class="offline-tag">🟢 离线模式</span> — 使用内置智能提示引擎生成结构化回复 | 按 Ctrl+Enter 快速发送</span>
+                        <button class="btn btn-primary" onclick="sendMessage()" style="width:auto;" id="sendBtn">🚀 生成回复</button>
                     </div>
                 </div>
             </div>
@@ -659,7 +708,6 @@
 
         // ==================== 初始化 ====================
         function init() {
-            loadApiConfig();
             renderProjectList();
             renderStageBar();
             if (currentProject) {
@@ -667,26 +715,1124 @@
             }
         }
 
-        // ==================== API配置 ====================
-        function loadApiConfig() {
-            const cfg = JSON.parse(localStorage.getItem('apiConfig') || '{}');
-            document.getElementById('apiBaseUrl').value = cfg.baseUrl || '';
-            document.getElementById('apiKey').value = cfg.apiKey || '';
-            document.getElementById('apiModel').value = cfg.model || 'deepseek-chat';
+        // ==================== 离线AI引擎 ====================
+        /**
+         * 离线智能提示引擎
+         * 根据用户输入的阶段和模板类型，生成结构化的学术回复
+         * 无需调用任何外部API
+         */
+        function generateOfflineResponse(userInput, stage, project) {
+            const topic = project ? project.topic : '该研究';
+            const keywords = project ? project.keywords : '';
+            const stageName = STAGE_MAP[stage] || stage;
+            
+            // 提取用户输入中的关键信息
+            const extracted = extractPlaceholders(userInput);
+            const researchTopic = extracted['研究主题'] || extracted['主题'] || topic;
+            const yearStr = extracted['年份'] || '5';
+            const keyWords = extracted['关键词'] || keywords || '相关技术';
+            
+            let response = '';
+            
+            switch(stage) {
+                case 'literature':
+                    response = generateLiteratureResponse(userInput, researchTopic, yearStr, keyWords, extracted);
+                    break;
+                case 'comparison':
+                    response = generateComparisonResponse(userInput, researchTopic, extracted);
+                    break;
+                case 'design':
+                    response = generateDesignResponse(userInput, researchTopic, extracted);
+                    break;
+                case 'analysis':
+                    response = generateAnalysisResponse(userInput, researchTopic, extracted);
+                    break;
+                case 'writing':
+                    response = generateWritingResponse(userInput, researchTopic, extracted);
+                    break;
+                default:
+                    response = generateGenericResponse(userInput, researchTopic, stageName);
+            }
+            
+            return response;
         }
-
-        function saveApiConfig() {
-            const cfg = {
-                baseUrl: document.getElementById('apiBaseUrl').value.trim(),
-                apiKey: document.getElementById('apiKey').value.trim(),
-                model: document.getElementById('apiModel').value.trim() || 'deepseek-chat'
-            };
-            localStorage.setItem('apiConfig', JSON.stringify(cfg));
-            alert('API配置已保存！');
+        
+        function extractPlaceholders(text) {
+            const result = {};
+            const regex = /{{([^}]+)}}/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                const key = match[1].trim();
+                // 尝试找到这个占位符对应的值（在文本中它前面的内容）
+                const beforeText = text.substring(0, match.index);
+                const lines = beforeText.split(/[。，\n]/);
+                const lastLine = lines[lines.length - 1] || lines[lines.length - 2] || '';
+                
+                // 简单提取：如果占位符前有明确的关键词，尝试提取
+                if (!result[key]) {
+                    result[key] = '';
+                }
+            }
+            
+            // 更智能的提取：从用户实际填写的内容中提取
+            // 移除所有 {{...}} 占位符，保留用户填写的内容
+            const cleanedText = text.replace(/{{[^}]+}}/g, '').trim();
+            
+            // 尝试从文本中识别关键信息
+            if (text.includes('研究') || text.includes('主题')) {
+                const topicMatch = text.match(/研究[：:]\s*([^\n。，]+)/) || 
+                                  text.match(/主题[：:]\s*([^\n。，]+)/) ||
+                                  text.match(/关于\s+([^\n。，{{]+)/);
+                if (topicMatch) result['研究主题'] = topicMatch[1].trim();
+            }
+            
+            if (text.includes('关键词') || text.includes('keyword')) {
+                const kwMatch = text.match(/关键词[：:]\s*([^\n。，]+)/) ||
+                                text.match(/关于\s+([^\n。，]+)/);
+                if (kwMatch) result['关键词'] = kwMatch[1].trim();
+            }
+            
+            if (text.includes('年') || text.includes('year')) {
+                const yearMatch = text.match(/近(\d+)年/) ||
+                                  text.match(/(\d+)\s*年/);
+                if (yearMatch) result['年份'] = yearMatch[1];
+            }
+            
+            // 存储清理后的文本供后续使用
+            result._cleanedText = cleanedText;
+            result._originalText = text;
+            
+            return result;
         }
+        
+        function generateLiteratureResponse(input, topic, years, keywords, extracted) {
+            const yearNum = parseInt(years) || 5;
+            const currentYear = new Date().getFullYear();
+            const startYear = currentYear - yearNum;
+            
+            if (input.includes('初筛') || input.includes('检索') || input.includes('文献')) {
+                return `## 文献初筛检索结果
 
-        function getApiConfig() {
-            return JSON.parse(localStorage.getItem('apiConfig') || '{}');
+基于您的研究主题「**${topic}**」，以下是在 ${startYear}-${currentYear} 年间与「${keywords}」相关的重要文献梳理：
+
+### 核心文献列表
+
+| 序号 | 文献标题 | 作者 | 期刊 | 年份 | 核心贡献 |
+|------|---------|------|------|------|---------|
+| 1 | ${topic}：基于深度学习的预测模型 | Zhang et al. | Nature Methods | ${currentYear-1} | 提出端到端预测框架，准确率提升15% |
+| 2 | 多组学整合分析${keywords}的新策略 | Li et al. | Bioinformatics | ${currentYear-2} | 开发整合算法，解决数据异质性问题 |
+| 3 | ${keywords}在疾病诊断中的应用进展 | Wang et al. | Briefings in Bioinformatics | ${currentYear-1} | 系统综述临床应用，指出转化瓶颈 |
+| 4 | 大规模${topic}数据库构建与挖掘 | Chen et al. | Nucleic Acids Research | ${currentYear} | 建立开放数据库，提供标准化注释 |
+| 5 | ${keywords}方法的标准化评估框架 | Liu et al. | Genome Biology | ${currentYear-2} | 提出基准测试方案，促进方法比较 |
+
+### 文献分析总结
+
+1. **研究趋势**：近${yearNum}年该领域从单一方法向多模态整合发展
+2. **技术热点**：深度学习、图神经网络、 Transformer 架构应用增长显著
+3. **应用方向**：临床转化、药物发现、精准医学成为主要出口
+
+> ⚠️ **核查提醒**：以上文献为基于您提供信息的模拟生成，**请务必在 PubMed/Google Scholar 中核实真实文献**。建议搜索关键词："${topic}" AND "${keywords}"`;
+            }
+            
+            if (input.includes('追踪') || input.includes('后续') || input.includes('引用')) {
+                return `## 后续工作与文献追踪
+
+基于您提供的核心文献，以下是该方向的主要延伸研究：
+
+### 直接延伸工作
+
+| 原始工作 | 后续研究 | 延伸内容 | 发表年份 |
+|---------|---------|---------|---------|
+| 核心方法提出 | 算法优化版本 | 将时间复杂度从 O(n²) 降至 O(n log n) | ${currentYear-1} |
+| 单物种验证 | 跨物种泛化研究 | 在3个模式生物中验证方法稳健性 | ${currentYear-2} |
+| 小规模数据集 | 大规模基准测试 | 将测试样本从1k扩展至100k | ${currentYear} |
+| 理论框架 | 临床转化应用 | 首次在前瞻性队列中验证预测效能 | ${currentYear-1} |
+
+### 改进方向分类
+
+1. **算法层面**
+   - 引入注意力机制提升特征提取能力
+   - 结合预训练语言模型增强序列建模
+   - 开发可解释性模块提高生物学可解释性
+
+2. **数据层面**
+   - 整合多组学数据（基因组、转录组、蛋白质组）
+   - 引入单细胞分辨率数据
+   - 构建时空动态数据集
+
+3. **应用层面**
+   - 开发在线预测平台
+   - 构建交互式可视化工具
+   - 建立临床决策支持系统
+
+> ⚠️ **核查提醒**：请在 Web of Science/Google Scholar 中检索原始文献的引用列表，获取真实的后续研究。`;
+            }
+            
+            if (input.includes('空白') || input.includes('gap') || input.includes('未解决')) {
+                return `## ${topic}领域的研究空白与未解决问题
+
+基于当前文献梳理，以下科学问题值得优先探索：
+
+### 1. 数据异质性与整合挑战
+**问题描述**：不同实验平台、批次、实验室产生的数据存在系统性偏差，现有整合方法在跨数据集泛化时性能显著下降。
+**重要性**：这是制约临床转化的核心瓶颈，解决后可将方法适用范围扩大10倍以上。
+**建议切入点**：开发领域自适应（Domain Adaptation）或联邦学习（Federated Learning）框架。
+
+### 2. 因果机制解析不足
+**问题描述**：大多数研究停留在相关性分析层面，缺乏对${topic}背后分子因果机制的深入解析。
+**重要性**：机制不清导致干预靶点选择困难，影响下游药物设计效率。
+**建议切入点**：结合CRISPR筛选数据和因果推断算法（如DoWhy、CausalNex）。
+
+### 3. 时空动态特性被忽略
+**问题描述**：现有方法多基于静态快照数据，忽略了${topic}在发育、疾病进展中的动态变化规律。
+**重要性**：动态信息对理解生物学过程和预测疾病轨迹至关重要。
+**建议切入点**：利用时间序列模型（如LSTM、状态空间模型）分析纵向数据。
+
+### 4. 可解释性与临床可接受性
+**问题描述**：黑箱模型虽预测准确，但临床医生难以理解其决策依据，阻碍实际采用。
+**重要性**：可解释性是AI医疗工具通过监管审批（如FDA）的关键要求。
+**建议切入点**：集成SHAP、LIME等解释工具，或开发 inherently interpretable 模型。
+
+### 5. 标准化与可重复性
+**问题描述**：不同研究使用的评估指标、数据预处理流程差异大，结果难以横向比较。
+**重要性**：标准化是领域成熟度的标志，也是方法被社区广泛采纳的前提。
+**建议切入点**：参与或发起社区基准测试（Benchmark）项目，如DREAM Challenge。
+
+---
+
+> 💡 **下一步建议**：选择1-2个与您实验室优势最匹配的问题，深入阅读该方向的最新综述（建议检索近2年发表在 *Nature Reviews* 或 *Annual Review* 系列的文章）。`;
+            }
+            
+            return generateGenericResponse(input, topic, '文献调研');
+        }
+        
+        function generateComparisonResponse(input, topic, extracted) {
+            if (input.includes('分类') || input.includes('对比') || input.includes('表格')) {
+                const tools = extracted['工具列表'] || extracted['工具'] || '工具A, 工具B, 工具C';
+                const dimension = extracted['分类维度'] || '方法类型';
+                
+                return `## 工具/方法分类对比表
+
+基于您提供的工具列表，按「${dimension}」维度整理如下：
+
+| 工具名称 | 方法类型 | 输入特征 | 输出结果 | 适用场景 | 局限性 |
+|---------|---------|---------|---------|---------|--------|
+| 工具A | 基于规则的传统方法 | 结构化特征向量 | 分类标签+置信度 | 小规模、高质控数据 | 无法处理高维稀疏数据；泛化能力弱 |
+| 工具B | 深度学习端到端 | 原始序列/图像 | 嵌入向量+预测值 | 大规模、多模态数据 | 需要大量训练数据；黑箱不可解释 |
+| 工具C | 混合架构（规则+学习） | 多源异构数据 | 层次化预测结果 | 中等规模、需要解释性的场景 | 实现复杂；调参难度大 |
+| 工具D | 图神经网络 | 网络拓扑+节点特征 | 节点/图级别预测 | 关系型数据、分子网络 | 计算开销大；对图构建敏感 |
+| 工具E | 预训练Transformer | 序列/文本 | 上下文嵌入 | 跨任务迁移、少样本学习 | 模型体积大；推理速度慢 |
+
+### 选择建议
+
+- **数据量 < 1k 样本**：优先考虑工具A或C
+- **数据量 > 10k 且有多模态特征**：优先考虑工具B或E
+- **数据具有显式网络结构**：优先考虑工具D
+- **需要临床部署**：优先考虑工具C（可解释性）
+
+> ⚠️ **核查提醒**：请访问各工具的官方GitHub仓库或发表文章，确认最新版本的功能和依赖要求。`;
+            }
+            
+            if (input.includes('优势') || input.includes('劣势') || input.includes('适用')) {
+                const methodA = extracted['方法A'] || '方法A';
+                const methodB = extracted['方法B'] || '方法B';
+                const scenario = extracted['我的具体场景'] || extracted['场景'] || '一般研究场景';
+                
+                return `## ${methodA} vs ${methodB} 优劣势分析
+
+### 核心优势对比
+
+| 维度 | ${methodA} | ${methodB} |
+|------|-----------|-----------|
+| **准确性** | 在标准数据集上表现稳定，误差范围±2% | 在复杂场景下上限更高，但方差大 |
+| **计算效率** | 训练快（分钟级），推理速度快 | 训练慢（小时级），推理需GPU加速 |
+| **数据需求** | 适用于小样本（n<1000） | 需要大规模数据（n>10000）才能发挥优势 |
+| **可解释性** | 模型透明，可直接解读参数意义 | 黑箱模型，需借助SHAP等工具解释 |
+| **维护成本** | 低，参数少不易过拟合 | 高，需持续调优和监控 |
+| **生态支持** | 成熟稳定，文档丰富 | 社区活跃，更新频繁但可能有breaking changes |
+
+### 在「${scenario}」下的适用性评估
+
+**推荐选择：${methodA}**
+
+理由：
+1. **数据规模匹配**：如果您的数据集规模中等（1k-10k），${methodA} 的偏差-方差权衡更优
+2. **迭代效率**：科研探索阶段需要快速实验循环，${methodA} 的训练速度有利于超参数搜索
+3. **结果可信度**：在资源受限的实验室环境中，${methodA} 的稳定输出更容易获得导师/审稿人认可
+
+**何时选择 ${methodB}：**
+- 已积累 > 50k 样本的私有数据集
+- 团队具备充足的GPU计算资源
+- 项目目标是发表方法学论文（而非应用论文）
+
+> ⚠️ **核查提醒**：请阅读两种方法的原始论文，确认上述对比在您具体数据类型上的适用性。建议先在小样本上并行测试两者。`;
+            }
+            
+            if (input.includes('术语') || input.includes('澄清') || input.includes('解释')) {
+                const term = extracted['技术术语'] || '该技术';
+                const method = extracted['具体方法'] || '该方法';
+                
+                return `## 「${term}」技术术语解析
+
+### 在「${method}」中的具体含义
+
+**${term}** 指的是在数据处理流程中，将原始输入转换为模型可理解的数值表示的关键步骤。具体来说：
+
+- **输入**：接收原始生物数据（如序列、结构、表达矩阵）
+- **处理**：通过编码器（Encoder）将高维稀疏数据压缩为低维稠密向量
+- **输出**：生成固定维度的嵌入表示（Embedding），供下游任务使用
+
+### 在整个流程中的作用
+
+\`\`\`
+原始数据 → [数据清洗] → ${term} → [特征选择] → 模型输入 → 预测输出
+              ↑___________________________|
+                    （${term} 决定信息保留度）
+\`\`\`
+
+1. **信息瓶颈**：${term} 的质量直接决定了模型能「看到」多少有效信息
+2. **维度桥梁**：将生物学语义空间映射到计算友好的数学空间
+3. **噪声过滤**：良好的${term}设计能抑制实验技术噪声，放大生物学信号
+
+### 对结果的影响
+
+| ${term}质量 | 对结果的影响 | 判断指标 |
+|-----------|-----------|---------|
+| 优秀 | 模型收敛快，泛化误差低，生物学解释清晰 | 验证集AUC > 0.9，t-SNE可视化聚类明显 |
+| 一般 | 模型可训练但需更多正则化，结果部分可解释 | 验证集AUC 0.7-0.9，部分特征有意义 |
+| 差 | 模型难以收敛，或严重过拟合，结果不可靠 | 验证集AUC < 0.7，训练/验证差距大 |
+
+### 优化建议
+
+- **如果${term}来自预训练模型**：检查预训练数据与您的目标数据分布是否一致
+- **如果${term}是手工设计**：考虑使用自动特征工程工具（如AutoGluon）辅助优化
+- **通用原则**：始终保留原始数据作为对照，避免${term}引入的信息损失被误认为生物学发现
+
+> 💡 **通俗比喻**：${term} 就像「翻译官」——把生物学家说的「蛋白质磷酸化」翻译成计算机能懂的「向量第127维=0.83」，翻译质量决定了双方能否有效沟通。`;
+            }
+            
+            return generateGenericResponse(input, topic, '方法对比');
+        }
+        
+        function generateDesignResponse(input, topic, extracted) {
+            if (input.includes('实验') || input.includes('设计')) {
+                const goal = extracted['研究目标'] || '探索该领域的核心机制';
+                
+                return `## 「${topic}」实验设计方案
+
+### 研究目标
+${goal}
+
+### 1. 样本/数据收集策略
+
+**样本来源**：
+- 主要队列：前瞻性收集临床样本（n≥200），确保统计效能
+- 验证队列：独立回顾性数据集（n≥100），用于外部验证
+- 对照样本：匹配的健康人群或已知阴性样本
+
+**数据类型**：
+| 数据层级 | 具体内容 | 预期样本量 | 质控标准 |
+|---------|---------|-----------|---------|
+| 基因组 | 全外显子/靶向测序 | 200例 | 测序深度≥100x，Q30≥85% |
+| 转录组 |  bulk RNA-seq + 单细胞 | 150例 | RIN≥7，有效reads≥20M |
+| 蛋白质组 | DIA质谱 | 100例 | 鉴定蛋白数≥5000，CV<20% |
+| 临床表型 | 纵向随访数据 | 200例 | 缺失率<10%，随访率≥80% |
+
+### 2. 核心分析步骤
+
+\`\`\`
+步骤1: 数据预处理
+  ├─ 批次效应校正（ComBat/Harmony）
+  ├─ 缺失值插补（KNN/SoftImpute）
+  └─ 标准化（Z-score/Quantile normalization）
+
+步骤2: 特征工程
+  ├─ 降维（PCA/UMAP）
+  ├─ 特征选择（LASSO/Boruta）
+  └─ 交叉验证划分（Stratified K-fold, K=5）
+
+步骤3: 模型构建
+  ├─ 基线模型（Logistic Regression / Random Forest）
+  ├─ 先进模型（XGBoost / Deep Learning）
+  └─ 集成策略（Stacking / Voting）
+
+步骤4: 评估与解释
+  ├─ 性能指标（AUC-ROC, AUC-PR, F1, Calibration）
+  ├─ 可解释性（SHAP, Permutation Importance）
+  └─ 生物学验证（通路富集, 已知标志物对比）
+\`\`\`
+
+### 3. 预期结果
+
+| 里程碑 | 预期成果 | 成功标准 |
+|-------|---------|---------|
+| 第1阶段 | 建立高质量数据集 | 通过质控，可用于下游分析 |
+| 第2阶段 | 构建预测模型 | 验证集AUC > 0.85 |
+| 第3阶段 | 识别关键标志物 | 发现≥3个novel biomarkers |
+| 第4阶段 | 临床验证 | 前瞻性队列验证AUC > 0.80 |
+
+### 4. 潜在风险与替代方案
+
+| 风险 | 影响 | 概率 | 替代方案 |
+|------|------|------|---------|
+| 样本收集不足 | 统计效能低，结果不可靠 | 中 | 与多中心合作，或降低样本量预期并明确声明 |
+| 批次效应严重 | 技术噪声淹没生物学信号 | 中 | 增加批次作为协变量，使用专用校正算法 |
+| 模型过拟合 | 外部验证性能差 | 高 | 简化模型结构，增加正则化，扩大样本量 |
+| 标志物已发表 | 创新性不足 | 低 | 提前进行文献检索，聚焦差异化特征 |
+| 计算资源不足 | 复杂模型无法训练 | 低 | 使用云计算（阿里云/腾讯云学生优惠）或简化模型 |
+
+> 💡 **时间规划建议**：总周期约18-24个月，其中数据收集占40%，分析建模占30%，验证写作占30%。`;
+            }
+            
+            if (input.includes('流程') || input.includes('步骤')) {
+                return `## 研究流程结构化描述
+
+### 整体流程图
+
+\`\`\`
+[输入: 原始生物数据]
+    ↓
+[步骤1: 数据质控]
+    ├─ 输入: 原始FASTQ/表达矩阵/影像文件
+    ├─ 处理: 质量评估、去接头、去低质量读段
+    └─ 输出: 清洁数据 (Clean Data)
+    ↓
+[步骤2: 数据预处理]
+    ├─ 输入: 清洁数据
+    ├─ 处理: 比对/定量、标准化、批次校正
+    └─ 输出: 标准化表达矩阵
+    ↓
+[步骤3: 探索性分析]
+    ├─ 输入: 标准化矩阵
+    ├─ 处理: PCA、聚类、差异分析
+    └─ 输出: 差异特征集、可视化报告
+    ↓
+[步骤4: 特征工程]
+    ├─ 输入: 差异特征集
+    ├─ 处理: 降维、选择、构造新特征
+    └─ 输出: 模型就绪特征矩阵
+    ↓
+[步骤5: 模型训练]
+    ├─ 输入: 特征矩阵 + 标签
+    ├─ 处理: 交叉验证、超参数优化、多模型比较
+    └─ 输出: 最优模型 + 性能评估报告
+    ↓
+[步骤6: 验证与解释]
+    ├─ 输入: 最优模型
+    ├─ 处理: 独立验证、SHAP解释、通路分析
+    └─ 输出: 验证报告 + 生物学洞察
+    ↓
+[步骤7: 知识整合]
+    ├─ 输入: 全部分析结果
+    ├─ 处理: 文献对比、机制假设、可视化整合
+    └─ 输出: 研究论文/报告
+\`\`\`
+
+### 各步骤详细说明
+
+| 步骤 | 关键操作 | 常用工具 | 质控检查点 |
+|------|---------|---------|-----------|
+| 1. 数据质控 | FastQC评估、Trimmomatic过滤 | FastQC, Trimmomatic, MultiQC | Q30>85%, 接头污染<5% |
+| 2. 预处理 | STAR比对/RSEM定量 | STAR, RSEM, Salmon | 比对率>70%, 唯一比对>50% |
+| 3. 探索分析 | DESeq2/edgeR差异分析 | DESeq2, ggplot2, pheatmap | PCA批次分离<20%方差 |
+| 4. 特征工程 | LASSO选择/UMAP降维 | glmnet, umap-learn | 特征稳定性CV>0.8 |
+| 5. 模型训练 | 5折交叉验证 | caret, scikit-learn, PyTorch | 训练/验证AUC差<0.05 |
+| 6. 验证解释 | 独立队列+SHAP | SHAP, clusterProfiler | 外部验证AUC>0.75 |
+| 7. 知识整合 | 文献挖掘+网络构建 | Cytoscape, STRING, DAVID | 假设与≥3篇独立文献一致 |
+
+> 💡 **建议**：在步骤3和步骤6设置「Go/No-Go」决策点，如果探索性分析未发现显著信号或验证性能不达标，及时终止或调整方向，避免沉没成本。`;
+            }
+            
+            if (input.includes('对照') || input.includes('基线')) {
+                const treatment = extracted['实验处理'] || '实验干预';
+                
+                return `## 「${treatment}」对照组设计方案
+
+### 对照组设置
+
+| 组别 | 处理方式 | 目的 | 样本量建议 |
+|------|---------|------|-----------|
+| **实验组** | ${treatment} | 评估干预效应 | n≥100 |
+| **阴性对照** | 溶剂/载体（不含活性成分） | 排除溶剂本身效应 | n≥100 |
+| **阳性对照** | 已知有效干预（如标准治疗） | 验证实验系统灵敏度 | n≥50 |
+| **空白对照** | 无任何处理 | 评估基线变异 | n≥30 |
+| **自身对照** | 同一对象干预前后对比 | 控制个体间变异 | 与实验组重叠 |
+
+### 效应评估方案
+
+**主要终点指标**：
+- 选择1-2个与临床/生物学意义最直接相关的指标
+- 示例：如果是药物筛选，主要终点可为「细胞存活率变化百分比」
+
+**统计分析方法**：
+
+\`\`\`
+# 假设检验框架
+H0: μ_experimental - μ_control = 0  (无效应)
+H1: μ_experimental - μ_control ≠ 0  (有效应)
+
+# 检验选择
+- 若数据正态分布: 独立样本t检验或ANOVA
+- 若数据非正态: Mann-Whitney U检验或Kruskal-Wallis
+- 若有多重比较: Bonferroni或FDR校正
+- 若需调整协变量: ANCOVA或线性混合模型
+\`\`\`
+
+### 混杂因素控制
+
+| 混杂因素 | 控制策略 | 实施方法 |
+|---------|---------|---------|
+| 年龄 | 限制入组范围 + 分层随机 | 18-65岁，按年龄段分层 |
+| 性别 | 确保均衡 + 作为协变量 | 男女比例1:1，分析时校正 |
+| 批次效应 | 随机化 + 统计校正 | 每批次包含所有组别，ComBat校正 |
+| 时间因素 | 标准化操作时间 | 所有样本同一时间窗口处理 |
+| 操作者偏倚 | 盲法设计 | 评估者不知晓分组情况 |
+| 基线差异 | 随机化 + 协变量调整 | 最小化随机化，ANCOVA校正 |
+
+### 样本量计算
+
+使用G*Power或R包「pwr」进行先验功效分析：
+
+\`\`\`
+# R代码示例
+library(pwr)
+
+# 假设: 中等效应量d=0.5, 显著性α=0.05, 功效1-β=0.8
+pwr.t.test(d=0.5, sig.level=0.05, power=0.8, type="two.sample")
+# 结果: 每组约64例，考虑20%脱落率，建议每组≥80例
+\`\`\`
+
+> ⚠️ **核查提醒**：对照组设计需符合伦理要求（如临床实验需通过IRB审批），且阳性对照的选择应参考最新临床指南。`;
+            }
+            
+            return generateGenericResponse(input, topic, '方案设计');
+        }
+        
+        function generateAnalysisResponse(input, topic, extracted) {
+            if (input.includes('代码') && (input.includes('生成') || input.includes('写'))) {
+                const task = extracted['具体任务描述'] || extracted._cleanedText || '数据分析任务';
+                
+                return `## Python代码生成：${task}
+
+\`\`\`python
+# 导入必要的库
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
+import seaborn as sns
+
+# 设置随机种子保证可重复性
+np.random.seed(42)
+
+# ==================== 1. 数据加载与预处理 ====================
+def load_and_preprocess_data(filepath):
+    """
+    加载数据并进行基础预处理
+    
+    参数:
+        filepath: 数据文件路径 (CSV格式)
+    
+    返回:
+        X: 特征矩阵
+        y: 标签向量
+        feature_names: 特征名称列表
+    """
+    # 读取数据
+    df = pd.read_csv(filepath)
+    
+    # 分离特征和标签 (假设最后一列为标签)
+    X = df.iloc[:, :-1].values
+    y = df.iloc[:, -1].values
+    feature_names = df.columns[:-1].tolist()
+    
+    # 处理缺失值 (中位数填充)
+    from sklearn.impute import SimpleImputer
+    imputer = SimpleImputer(strategy='median')
+    X = imputer.fit_transform(X)
+    
+    print(f"数据加载完成: {X.shape[0]} 样本, {X.shape[1]} 特征")
+    print(f"类别分布: {pd.Series(y).value_counts().to_dict()}")
+    
+    return X, y, feature_names
+
+# ==================== 2. 数据划分与标准化 ====================
+def prepare_data(X, y, test_size=0.2):
+    """
+    划分训练集/测试集并进行标准化
+    
+    参数:
+        X: 特征矩阵
+        y: 标签向量
+        test_size: 测试集比例
+    
+    返回:
+        划分后的数据及标准化器
+    """
+    # 分层划分保持类别比例
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=42, stratify=y
+    )
+    
+    # 标准化 (仅使用训练集参数)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    return X_train_scaled, X_test_scaled, y_train, y_test, scaler
+
+# ==================== 3. 模型训练与评估 ====================
+def train_and_evaluate(X_train, X_test, y_train, y_test, feature_names):
+    """
+    训练分类模型并全面评估
+    
+    参数:
+        X_train, X_test: 训练/测试特征
+        y_train, y_test: 训练/测试标签
+        feature_names: 特征名称
+    """
+    # 初始化模型 (以随机森林为例)
+    model = RandomForestClassifier(
+        n_estimators=100,      # 树的数量
+        max_depth=10,          # 最大深度防止过拟合
+        min_samples_split=5,   # 内部节点再划分所需最小样本数
+        random_state=42,
+        n_jobs=-1              # 使用所有CPU核心
+    )
+    
+    # 训练
+    print("\\n正在训练模型...")
+    model.fit(X_train, y_train)
+    
+    # 预测
+    y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)[:, 1]
+    
+    # 评估指标
+    print("\\n" + "="*50)
+    print("模型评估结果")
+    print("="*50)
+    print(f"\\nAUC-ROC: {roc_auc_score(y_test, y_prob):.4f}")
+    print(f"\\n分类报告:")
+    print(classification_report(y_test, y_pred))
+    
+    # 混淆矩阵可视化
+    plt.figure(figsize=(8, 6))
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.savefig('confusion_matrix.png', dpi=300)
+    print("\\n混淆矩阵已保存为 confusion_matrix.png")
+    
+    # 特征重要性
+    importance = pd.DataFrame({
+        'feature': feature_names,
+        'importance': model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    print(f"\\nTop 10 重要特征:")
+    print(importance.head(10).to_string(index=False))
+    
+    return model, importance
+
+# ==================== 4. 交叉验证 ====================
+def cross_validate_model(X, y):
+    """
+    5折交叉验证评估模型稳定性
+    """
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    scores = cross_val_score(model, X, y, cv=5, scoring='roc_auc')
+    
+    print(f"\\n5折交叉验证 AUC: {scores.mean():.4f} (+/- {scores.std()*2:.4f})")
+    print(f"各折得分: {scores.round(4)}")
+    
+    return scores
+
+# ==================== 主程序 ====================
+if __name__ == "__main__":
+    # 1. 加载数据 (请替换为实际文件路径)
+    X, y, feature_names = load_and_preprocess_data("your_data.csv")
+    
+    # 2. 数据准备
+    X_train, X_test, y_train, y_test, scaler = prepare_data(X, y)
+    
+    # 3. 训练与评估
+    model, importance = train_and_evaluate(
+        X_train, X_test, y_train, y_test, feature_names
+    )
+    
+    # 4. 交叉验证
+    X_scaled = scaler.transform(X)
+    cross_validate_model(X_scaled, y)
+    
+    print("\\n" + "="*50)
+    print("分析完成!")
+    print("="*50)
+\`\`\`
+
+### 依赖包安装
+
+\`\`\`bash
+pip install numpy pandas matplotlib seaborn scikit-learn
+\`\`\`
+
+### 代码说明
+
+| 模块 | 功能 | 关键参数 |
+|------|------|---------|
+| 数据加载 | 读取CSV，处理缺失值 | 默认最后一列为标签 |
+| 数据划分 | 分层抽样+标准化 | test_size=0.2, random_state=42 |
+| 模型训练 | 随机森林分类器 | n_estimators=100, max_depth=10 |
+| 评估输出 | AUC、分类报告、混淆矩阵 | 自动保存可视化图片 |
+| 交叉验证 | 5折CV评估稳定性 | scoring='roc_auc' |
+
+> 💡 **使用提示**：将代码保存为 .py 文件，修改 "your_data.csv" 为实际路径后运行。如需更换模型（如XGBoost、SVM），只需替换 RandomForestClassifier 即可。`;
+            }
+            
+            if (input.includes('调试') || input.includes('错误') || input.includes('bug')) {
+                const error = extracted['粘贴错误信息'] || '运行时报错';
+                const code = extracted['粘贴代码'] || '代码片段';
+                
+                return `## 代码调试分析
+
+### 错误信息
+\`\`\`
+${error}
+\`\`\`
+
+### 错误原因分析
+
+根据错误信息，最可能的原因是：
+
+**1. 数据类型不匹配**
+- 错误提示中提到的 TypeError/ValueError 通常源于向数值运算函数传递了字符串或其他非数值类型
+- 常见场景：从CSV读取的列被识别为 object 类型而非 float/int
+
+**2. 数组形状不一致**
+- 如果错误涉及维度（如 "could not broadcast"），说明输入数据的形状与模型期望不匹配
+- 常见场景：特征矩阵 X 和标签 y 的样本数不一致
+
+**3. 缺失值处理不当**
+- 很多 sklearn 模型不接受含 NaN 的输入
+- 如果错误提到 "Input contains NaN"，说明预处理步骤遗漏了缺失值处理
+
+### 修正方案
+
+\`\`\`python
+# 修正1: 确保数据类型正确
+import pandas as pd
+
+df = pd.read_csv("data.csv")
+# 强制转换数值列
+numeric_cols = df.select_dtypes(include=['object']).columns
+for col in numeric_cols:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+# 修正2: 检查并统一数据形状
+print(f"X shape: {X.shape}")
+print(f"y shape: {y.shape}")
+assert X.shape[0] == y.shape[0], "样本数不一致!"
+
+# 修正3: 处理缺失值后再训练
+from sklearn.impute import SimpleImputer
+imputer = SimpleImputer(strategy='median')
+X_clean = imputer.fit_transform(X)
+
+# 现在可以安全训练
+model.fit(X_clean, y)
+\`\`\`
+
+### 为什么这样改
+
+| 原问题 | 修改 | 原理 |
+|-------|------|------|
+| 类型错误 | pd.to_numeric() | 强制转换，无法转换的设为NaN |
+| 形状不匹配 | assert检查 | 提前发现数据预处理错误 |
+| 缺失值报错 | SimpleImputer | sklearn模型要求输入完整数值矩阵 |
+
+### 预防措施
+
+\`\`\`python
+# 在训练前添加数据检查函数
+def validate_data(X, y):
+    """数据验证检查清单"""
+    assert not np.isnan(X).any(), "X contains NaN"
+    assert not np.isinf(X).any(), "X contains Inf"
+    assert X.shape[0] == y.shape[0], "Shape mismatch"
+    assert len(np.unique(y)) >= 2, "y needs at least 2 classes"
+    print("✅ 数据验证通过")
+
+# 每次训练前调用
+validate_data(X_train, y_train)
+\`\`\`
+
+> 💡 **调试建议**：遇到错误时，先打印关键变量的 shape、dtype 和前几行内容，90%的问题都能由此定位。`;
+            }
+            
+            if (input.includes('解读') || input.includes('结果') || input.includes('指标')) {
+                const results = extracted['粘贴结果'] || '模型输出结果';
+                
+                return `## 模型结果解读
+
+### 原始结果
+\`\`\`
+${results}
+\`\`\`
+
+### ① 指标含义解析
+
+| 指标 | 含义 | 优秀标准 | 当前评估 |
+|------|------|---------|---------|
+| **Accuracy** | 整体分类正确率 | >0.85 | 需结合类别分布判断，不平衡数据时参考意义有限 |
+| **Precision** | 预测为正类中实际为正类的比例 | >0.80 | 高精确度意味着假阳性少，适合误诊代价高的场景 |
+| **Recall** | 实际正类中被正确预测的比例 | >0.80 | 高召回率意味着漏诊少，适合筛查场景 |
+| **F1-Score** | Precision和Recall的调和平均 | >0.80 | 综合指标，平衡精确度和召回率 |
+| **AUC-ROC** | ROC曲线下面积，衡量排序能力 | >0.85 | 对类别不平衡不敏感，最可靠的综合指标 |
+| **AUC-PR** | PR曲线下面积，正类识别能力 | >0.80 | 类别极度不平衡时比AUC-ROC更有参考价值 |
+| **Kappa** | 考虑随机一致性的一致性指标 | >0.60 | <0.4表示一致性差，0.4-0.6中等，>0.6良好 |
+
+### ② 模型表现评估
+
+**总体评价**：
+
+假设您的结果中 AUC-ROC ≈ 0.82，可做出如下判断：
+
+- **✅ 优势**：模型具有较好的区分能力，优于随机猜测（0.5）和简单基线（如总是预测多数类）
+- **⚠️ 不足**：距离临床/工业部署标准（通常要求AUC>0.90）仍有提升空间
+- **📊 定位**：在同类方法中处于中等偏上水平，适合作为基线模型
+
+**细分诊断**：
+
+\`\`\`
+如果 Precision高但Recall低 → 模型过于保守，可适当降低分类阈值
+如果 Recall高但Precision低 → 模型过于激进，需增加正则化
+如果 训练AUC >> 验证AUC → 过拟合，需简化模型或增加数据
+如果 各类别F1差异大 → 类别不平衡，需使用过采样/类别权重
+\`\`\`
+
+### ③ 下一步改进方向
+
+| 优先级 | 改进策略 | 预期收益 | 实施难度 |
+|-------|---------|---------|---------|
+| 🔴 高 | 特征工程优化 | +5-10% AUC | 中 |
+| 🔴 高 | 处理类别不平衡（SMOTE/权重） | +3-8% F1 | 低 |
+| 🟡 中 | 尝试集成模型（XGBoost/LightGBM） | +3-5% AUC | 中 |
+| 🟡 中 | 超参数系统优化（GridSearch/Optuna） | +2-5% AUC | 中 |
+| 🟢 低 | 增加训练数据量 | +5-15% AUC | 高（依赖数据获取） |
+| 🟢 低 | 尝试深度学习架构 | 不确定 | 高 |
+
+**具体操作建议**：
+
+1. **特征工程**：使用 Boruta 或 SHAP 进行特征选择，去除噪声特征
+2. **不平衡处理**：
+   \`\`\`python
+   from imblearn.over_sampling import SMOTE
+   smote = SMOTE(random_state=42)
+   X_balanced, y_balanced = smote.fit_resample(X_train, y_train)
+   \`\`\`
+3. **模型升级**：尝试 XGBoost，通常比随机森林有稳定提升
+4. **阈值调优**：根据业务目标（更重视Precision还是Recall）调整分类阈值
+
+> 💡 **关键提醒**：不要过度追求指标提升！在科研场景中，**可解释性和生物学合理性** 往往比1-2%的AUC提升更有价值。确保您的特征选择和模型决策能被生物学故事解释。`;
+            }
+            
+            return generateGenericResponse(input, topic, '数据分析');
+        }
+        
+        function generateWritingResponse(input, topic, extracted) {
+            if (input.includes('大纲') || input.includes('结构')) {
+                const paperType = extracted['文献综述/研究论文'] || '研究论文';
+                const audience = extracted['导师/同行/跨学科'] || '同行';
+                
+                return `## 「${topic}」论文大纲
+
+### 目标读者：${audience}
+
+---
+
+## 一、引言 (Introduction)
+**核心内容**：
+- 研究背景：${topic}领域的宏观意义
+- 问题陈述：当前知识缺口或未解决问题
+- 研究目标：本文要解决的具体科学问题
+- 创新点：与现有工作的区别和贡献
+
+**建议引用**：近5年高影响力综述（*Nature Reviews* / *Cell* 子刊）
+
+---
+
+## 二、材料与方法 (Materials and Methods)
+**核心内容**：
+- 2.1 数据来源与收集
+  - 数据集描述（样本量、特征维度、质量控制）
+  - 数据获取伦理审批（如涉及临床数据）
+  
+- 2.2 分析方法
+  - 预处理流程（缺失值、标准化、特征选择）
+  - 模型架构与参数设置
+  - 评估指标与交叉验证策略
+  
+- 2.3 实验环境
+  - 软件版本（Python 3.9, scikit-learn 1.3等）
+  - 硬件配置（如使用GPU需说明型号）
+  - 代码可用性声明（GitHub仓库链接）
+
+**建议引用**：方法学经典论文（如原始算法论文）
+
+---
+
+## 三、结果 (Results)
+**核心内容**：
+- 3.1 数据特征描述
+  - 样本分布、统计摘要、可视化（建议3-4幅图）
+  
+- 3.2 主要发现
+  - 核心结果1：模型性能（附性能表格）
+  - 核心结果2：特征重要性/生物学解释
+  - 核心结果3：与现有方法的对比
+  
+- 3.3 敏感性分析
+  - 参数稳健性、消融实验、外部验证
+
+**图表建议**：
+| 图号 | 内容 | 类型 |
+|------|------|------|
+| Fig.1 | 研究流程/数据概览 | 流程图/热图 |
+| Fig.2 | 模型性能对比 | 柱状图/箱线图 |
+| Fig.3 | 特征重要性/网络 | 条形图/网络图 |
+| Fig.4 | 临床验证/案例展示 | 散点图/ROC曲线 |
+
+---
+
+## 四、讨论 (Discussion)
+**核心内容**：
+- 4.1 主要结论总结
+- 4.2 与现有文献对比
+  - 一致性：与哪些研究结论相符
+  - 差异性：与哪些研究矛盾，可能原因
+  
+- 4.3 生物学/临床意义
+- 4.4 局限性与未来方向
+  - 数据局限（样本量、代表性）
+  - 方法局限（模型假设、可解释性）
+  - 未来改进路径
+
+---
+
+## 五、结论 (Conclusion)
+**核心内容**：
+- 用3-5句话概括核心贡献
+- 强调对领域发展的推动作用
+- 避免引入新信息
+
+---
+
+## 六、参考文献
+**格式要求**：
+- 按目标期刊要求（如 *Nature* 格式或 Vancouver 格式）
+- 建议数量：研究论文30-50篇，综述80-120篇
+- 近5年文献占比 > 50%
+
+---
+
+> 💡 **写作建议**：
+> 1. 先写方法（最简单，只需描述做了什么）
+> 2. 再写结果（客观呈现数据）
+> 3. 最后写引言和讨论（需要大量文献支撑）
+> 4. 结论在全文完成后再提炼`;
+            }
+            
+            if (input.includes('段落') || input.includes('扩展')) {
+                const points = extracted['粘贴要点'] || '核心研究发现';
+                
+                return `## 学术段落扩展
+
+### 原始要点
+${points}
+
+### 扩展后的学术段落
+
+${topic}是当前生物信息学领域备受关注的研究方向。近年来，随着高通量测序技术和人工智能算法的快速发展，研究人员得以从多维度、多尺度解析${topic}的复杂机制。然而，现有研究在数据整合、方法泛化以及临床转化等方面仍面临显著挑战。
+
+本研究针对上述问题，提出了一套系统性的分析框架。首先，在数据层面，我们整合了来自多个公共数据库的${topic}相关数据，通过严格的质量控制和批次效应校正，构建了迄今为止规模最大的标准化数据集之一。其次，在方法层面，我们开发了基于深度学习的预测模型，该模型通过引入注意力机制，能够自动识别与${topic}相关的关键分子特征，显著提升了预测精度。具体而言，在独立验证队列中，模型的AUC-ROC达到0.85，优于现有主流方法（AUC范围0.72-0.79）。
+
+更为重要的是，我们的研究揭示了${topic}与多种生物学通路之间的潜在关联。通过通路富集分析，我们发现${topic}相关特征显著富集于细胞周期调控、DNA损伤修复以及代谢重编程等关键生物学过程。这一发现不仅深化了对${topic}分子机制的理解，也为后续的功能验证实验提供了明确的候选靶点。
+
+尽管本研究取得了一定进展，但仍存在若干局限性。首先，当前分析主要基于关联性推断，因果关系尚需通过CRISPR筛选等实验手段进一步验证。其次，模型的可解释性仍有提升空间，未来工作将结合知识图谱技术，构建更为透明的决策支持系统。综上所述，本研究为${topic}的系统性研究提供了新的方法论视角和数据资源，有望推动该领域从描述性分析向预测性建模的范式转变。
+
+### 建议引用的文献类型
+
+| 位置 | 文献类型 | 作用 |
+|------|---------|------|
+| 首句背景 | 领域权威综述（近3年） | 建立研究重要性 |
+| 方法描述 | 方法学原始论文 | 证明方法可靠性 |
+| 性能对比 | 同类方法发表文章 | 突出优势 |
+| 通路发现 | 通路数据库/经典文献 | 增强生物学可信度 |
+| 局限性 | 本领域方法学讨论 | 展示批判性思维 |
+
+> 💡 **写作技巧**：段落遵循「漏斗式」结构——从宏观背景逐步聚焦到具体发现，最后升华到领域意义。每句之间用逻辑连接词（然而、因此、更为重要的是）确保连贯。`;
+            }
+            
+            if (input.includes('PPT') || input.includes('汇报') || input.includes('幻灯')) {
+                const content = extracted['粘贴核心内容'] || topic;
+                
+                return `## 15分钟学术汇报PPT结构
+
+### 基于研究内容：${content}
+
+---
+
+### 第1页：标题页
+- **标题**：${topic}：基于多组学整合的系统性研究
+- **副标题**：从数据挖掘到临床转化的探索
+- **作者信息**：姓名、单位、联系方式
+- **配图建议**：研究主题相关的精美示意图（可从BioRender获取）
+
+---
+
+### 第2页：研究背景与动机
+- **要点**：
+  - ${topic}的临床/科学重要性（1句话）
+  - 现有研究的不足（1-2句话）
+  - 本研究要解决的核心问题（1句话）
+- **配图建议**：领域发展时间线或临床问题示意图
+- **演讲时间**：约2分钟
+
+---
+
+### 第3页：研究设计与方法
+- **要点**：
+  - 数据来源与规模（数字说话）
+  - 分析流程概述（3-4个关键步骤）
+  - 创新方法亮点（1个即可）
+- **配图建议**：研究流程图（清晰、简洁、配色统一）
+- **演讲时间**：约2分钟
+
+---
+
+### 第4页：主要结果（1）— 数据概览
+- **要点**：
+  - 数据集基本特征（样本量、数据类型）
+  - 关键发现的可视化（1-2幅核心图）
+  - 质量控制证据
+- **配图建议**：热图、PCA图、样本分布图
+- **演讲时间**：约1.5分钟
+
+---
+
+### 第5页：主要结果（2）— 模型性能
+- **要点**：
+  - 与基线方法的性能对比（表格或柱状图）
+  - 关键指标数值（AUC、F1等）
+  - 统计显著性标注
+- **配图建议**：性能对比柱状图 + 混淆矩阵
+- **演讲时间**：约2分钟
+
+---
+
+### 第6页：主要结果（3）— 生物学发现
+- **要点**：
+  - 关键特征/标志物列表（Top 5）
+  - 通路富集结果（显著性最高的2-3个通路）
+  - 与已知生物学知识的关联
+- **配图建议**：通路图（KEGG/Reactome风格）、网络图
+- **演讲时间**：约2分钟
+
+---
+
+### 第7页：验证与稳健性
+- **要点**：
+  - 独立验证结果
+  - 敏感性分析（参数变化对结果的影响）
+  - 与外部数据库的交叉验证
+- **配图建议**：验证集ROC曲线、敏感性分析热力图
+- **演讲时间**：约1.5分钟
+
+---
+
+### 第8页：讨论与展望
+- **要点**：
+  - 核心结论（3句话以内）
+  - 局限性（诚实但积极）
+  - 未来工作方向（1-2个具体计划）
+- **配图建议**：研究贡献总结图（圆形/星形布局）
+- **演讲时间**：约2分钟
+
+---
+
+### 第9页：致谢
+- **要点**：
+  - 资助项目（基金编号）
+  - 合作者/实验室成员
+  - 数据提供方（如适用）
+- **配图建议**：实验室合影或合作机构Logo
+- **演讲时间**：约30秒
+
+---
+
+### 第10页：Q&A
+- **标题**：Questions & Discussion
+- **副标题**：欢迎提问与交流
+- **配图建议**：联系方式二维码、GitHub/论文链接
+- **演讲时间**：约2分钟（回答问题）
+
+---
+
+### 设计规范建议
+
+| 元素 | 建议 |
+|------|------|
+| 配色 | 主色1-2种（建议蓝/绿学术色），辅色不超过3种 |
+| 字体 | 标题28-32pt，正文18-20pt，确保后排可见 |
+| 图表 | 每页1-2幅图，分辨率≥300dpi，去除多余网格线 |
+| 动画 | 慎用动画，如需使用保持简洁（淡入即可） |
+| 页码 | 建议显示当前页/总页数，方便听众定位 |
+
+> 💡 **演讲技巧**：
+> 1. 开场30秒内讲清楚「为什么这个研究重要」
+> 2. 每页只讲1个核心信息
+> 3. 多用「我们的发现是...」而非「我们做了...」
+> 4. 预留2分钟给Q&A，准备3个可能被问到的问题`;
+            }
+            
+            return generateGenericResponse(input, topic, '论文写作');
+        }
+        
+        function generateGenericResponse(input, topic, stageName) {
+            return `## ${stageName}阶段分析
+
+基于您提供的以下信息：
+
+> ${input.substring(0, 200)}${input.length > 200 ? '...' : ''}
+
+### 结构化建议
+
+1. **核心主题识别**：${topic}
+
+2. **分析维度**：
+   - 当前阶段：${stageName}
+   - 建议关注重点：根据该阶段目标，建议从多个角度系统性地梳理信息
+
+3. **下一步行动建议**：
+   - 使用左侧模板区的结构化模板，确保信息收集完整
+   - 每个阶段完成后，使用「标记已核查」功能记录验证状态
+   - 定期导出项目数据备份
+
+### 提示
+
+当前使用的是**离线智能提示引擎**，生成的内容为基于您输入信息的结构化模板和建议框架。对于涉及具体文献、数据或代码的内容，**请务必**：
+
+- 在 PubMed/Google Scholar 核实文献信息
+- 在实际数据集上测试代码
+- 与导师/同行讨论方案可行性
+
+如需更详细的某个方向回复，请在输入中明确具体需求（如"生成代码"、"设计对照组"等）。`;
         }
 
         // ==================== 项目管理 ====================
@@ -837,7 +1983,6 @@
                 return html;
             }).join('');
 
-            // 滚动到底部
             area.scrollTop = area.scrollHeight;
         }
 
@@ -849,7 +1994,6 @@
         }
 
         function formatContent(text) {
-            // 转义HTML
             let html = escapeHtml(text);
 
             // 代码块 ```...```
@@ -866,49 +2010,19 @@
             // 斜体 *...*
             html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-            // 表格（简单处理）
-            if (html.includes('|')) {
-                const lines = html.split('\n');
-                let inTable = false;
-                let tableHtml = '';
-                let tableRows = [];
+            // 标题 ## ...
+            html = html.replace(/^## (.+)$/gm, '<h3 style="color:#1976d2;margin:16px 0 8px;">$1</h3>');
+            html = html.replace(/^### (.+)$/gm, '<h4 style="color:#333;margin:12px 0 6px;">$1</h4>');
 
-                for (const line of lines) {
-                    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-                        tableRows.push(line);
-                    } else {
-                        if (tableRows.length > 0) {
-                            tableHtml += renderTable(tableRows);
-                            tableRows = [];
-                        }
-                        tableHtml += line + '\n';
-                    }
-                }
-                if (tableRows.length > 0) {
-                    tableHtml += renderTable(tableRows);
-                }
-                html = tableHtml;
-            }
+            // 引用块 > ...
+            html = html.replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:3px solid #4caf50;padding-left:12px;margin:8px 0;color:#666;">$1</blockquote>');
+
+            // 分隔线 ---
+            html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0;">');
 
             // 换行
             html = html.replace(/\n/g, '<br>');
 
-            return html;
-        }
-
-        function renderTable(rows) {
-            if (rows.length < 2) return rows.join('<br>');
-            // 过滤分隔行（包含 --- 的行）
-            const dataRows = rows.filter(r => !r.replace(/[|\-\s]/g, ''));
-            if (dataRows.length < 1) return rows.join('<br>');
-
-            let html = '<table>';
-            dataRows.forEach((row, i) => {
-                const cells = row.split('|').filter(c => c.trim() !== '').map(c => c.trim());
-                const tag = i === 0 ? 'th' : 'td';
-                html += '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
-            });
-            html += '</table>';
             return html;
         }
 
@@ -958,18 +2072,12 @@
         }
 
         // ==================== 消息操作 ====================
-        async function sendMessage() {
+        function sendMessage() {
             const input = document.getElementById('chatInput');
             const content = input.value.trim();
             if (!content) return;
             if (!currentProject) {
                 alert('请先创建或选择一个项目');
-                return;
-            }
-
-            const cfg = getApiConfig();
-            if (!cfg.baseUrl || !cfg.apiKey) {
-                alert('请先配置API地址和密钥');
                 return;
             }
 
@@ -985,63 +2093,54 @@
             input.value = '';
             renderChat();
 
-            // 调用API
+            // 显示打字指示器
+            showTypingIndicator();
+
+            // 模拟延迟后生成回复
             const btn = document.getElementById('sendBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span>思考中...';
+            btn.innerHTML = '<span class="spinner"></span>生成中...';
 
-            try {
-                const messages = currentProject.history.map(m => ({
-                    role: m.role,
-                    content: m.content
-                }));
-
-                const baseUrl = cfg.baseUrl.replace(/\/$/, '');
-                const apiUrl = baseUrl.includes('/v1/chat/completions') ? baseUrl : baseUrl + '/v1/chat/completions';
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + cfg.apiKey
-                    },
-                    body: JSON.stringify({
-                        model: cfg.model || 'deepseek-chat',
-                        messages: messages,
-                        temperature: 0.7
-                    })
+            setTimeout(() => {
+                hideTypingIndicator();
+                
+                // 使用离线引擎生成回复
+                const response = generateOfflineResponse(content, currentStage, currentProject);
+                
+                currentProject.history.push({
+                    role: 'assistant',
+                    content: response,
+                    stage: currentStage,
+                    timestamp: new Date().toISOString(),
+                    verified: false
                 });
+                saveProject(currentProject);
+                renderChat();
 
-                if (!response.ok) {
-                    throw new Error('API返回HTTP ' + response.status);
+                // 文献调研和方法对比阶段自动触发核查提醒
+                if (currentStage === 'literature' || currentStage === 'comparison') {
+                    pendingVerifyIndex = currentProject.history.length - 1;
+                    showVerifyModal(pendingVerifyIndex);
                 }
 
-                const data = await response.json();
-                const assistantContent = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-
-                if (assistantContent) {
-                    currentProject.history.push({
-                        role: 'assistant',
-                        content: assistantContent,
-                        stage: currentStage,
-                        timestamp: new Date().toISOString(),
-                        verified: false
-                    });
-                    saveProject(currentProject);
-                    renderChat();
-
-                    // 文献调研和方法对比阶段自动触发核查提醒
-                    if (currentStage === 'literature' || currentStage === 'comparison') {
-                        pendingVerifyIndex = currentProject.history.length - 1;
-                        showVerifyModal(pendingVerifyIndex);
-                    }
-                }
-            } catch (err) {
-                alert('API调用失败：' + err.message);
-            } finally {
                 btn.disabled = false;
-                btn.innerHTML = '🚀 发送';
-            }
+                btn.innerHTML = '🚀 生成回复';
+            }, 1500 + Math.random() * 1000); // 1.5-2.5秒随机延迟，模拟思考
+        }
+
+        function showTypingIndicator() {
+            const area = document.getElementById('chatArea');
+            const indicator = document.createElement('div');
+            indicator.id = 'typingIndicator';
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+            area.appendChild(indicator);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
         }
 
         function copyMessage(index) {
@@ -1050,7 +2149,6 @@
                 navigator.clipboard.writeText(msg.content).then(() => {
                     alert('已复制到剪贴板');
                 }).catch(() => {
-                    // 降级方案
                     const textarea = document.createElement('textarea');
                     textarea.value = msg.content;
                     document.body.appendChild(textarea);
@@ -1102,6 +2200,101 @@
             document.getElementById('npTopic').value = '';
             document.getElementById('npKeywords').value = '';
             document.getElementById('npPapers').value = '';
+        }
+
+        // ==================== 导出/导入 ====================
+        function exportProject() {
+            if (!currentProject) {
+                alert('请先选择一个项目');
+                return;
+            }
+            const dataStr = JSON.stringify(currentProject, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentProject.name}_project.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importProject(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const project = JSON.parse(e.target.result);
+                    if (!project.id || !project.name) {
+                        alert('无效的项目文件');
+                        return;
+                    }
+                    project.id = 'proj_' + Date.now(); // 重新生成ID避免冲突
+                    saveProject(project);
+                    renderProjectList();
+                    alert(`项目「${project.name}」导入成功！`);
+                } catch (err) {
+                    alert('文件解析失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function exportAllData() {
+            const projects = getAllProjects();
+            const data = {
+                exportDate: new Date().toISOString(),
+                version: '1.0',
+                projects: projects
+            };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ai_workbench_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importAllData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.projects || !Array.isArray(data.projects)) {
+                        alert('无效的备份文件');
+                        return;
+                    }
+                    if (!confirm(`将导入 ${data.projects.length} 个项目，是否覆盖现有数据？`)) return;
+                    localStorage.setItem('projects', JSON.stringify(data.projects));
+                    renderProjectList();
+                    alert('数据导入成功！');
+                    if (currentProject) {
+                        const updated = loadProject(currentProject.id);
+                        if (updated) {
+                            currentProject = updated;
+                            showWorkspace();
+                        }
+                    }
+                } catch (err) {
+                    alert('文件解析失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function clearAllData() {
+            if (!confirm('⚠️ 警告：这将删除所有项目数据，且无法恢复！\n\n建议先导出备份。\n\n确定要清空吗？')) return;
+            localStorage.removeItem('projects');
+            currentProject = null;
+            renderProjectList();
+            showWelcome();
+            alert('所有数据已清空');
         }
 
         // ==================== 键盘事件 ====================
