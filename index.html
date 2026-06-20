@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI辅助学术研究工作台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        /* 侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .sidebar-header h1 {
+            font-size: 18px;
+            color: #1976d2;
+        }
+        .sidebar-header p {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .sidebar-section h3 {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+        .btn-primary:hover { background: #1565c0; }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-danger {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        .btn-danger:hover { background: #ffcdd2; }
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 12px;
+            width: auto;
+        }
+        .project-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .project-item:hover { background: #f5f5f5; }
+        .project-item.active {
+            background: #e3f2fd;
+            border-left: 3px solid #1976d2;
+        }
+        .project-item span {
+            font-size: 14px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .project-item .delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            font-size: 16px;
+            padding: 0 4px;
+        }
+        .project-item:hover .delete-btn { opacity: 1; }
+        .project-item .delete-btn:hover { color: #c62828; }
+        .current-project-info {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.8;
+        }
+        .current-project-info strong {
+            color: #333;
+        }
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .welcome-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        .welcome-page h2 {
+            font-size: 32px;
+            color: #1976d2;
+            margin-bottom: 20px;
+        }
+        .welcome-page p {
+            font-size: 16px;
+            color: #666;
+            max-width: 600px;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+        .welcome-page table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .welcome-page th, .welcome-page td {
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+            text-align: left;
+        }
+        .welcome-page th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        /* 项目工作区 */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .workspace-header {
+            background: #fff;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .workspace-header h2 {
+            font-size: 20px;
+            color: #333;
+        }
+        .workspace-header .meta {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+        /* 阶段切换 */
+        .stage-bar {
+            display: flex;
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 24px;
+        }
+        .stage-btn {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .stage-btn:hover {
+            color: #1976d2;
+            background: #f5f7fa;
+        }
+        .stage-btn.active {
+            color: #1976d2;
+            border-bottom-color: #1976d2;
+            font-weight: 600;
+        }
+        /* 模板区 */
+        .template-area {
+            background: #fff;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .template-area h4 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .template-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .template-chip {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .template-chip:hover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+            color: #1976d2;
+        }
+        /* 对话区 */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            background: #f8f9fa;
+        }
+        .chat-message {
+            max-width: 900px;
+            margin: 0 auto 16px;
+            padding: 16px;
+            border-radius: 12px;
+            position: relative;
+        }
+        .chat-message.user {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .chat-message.assistant {
+            background: #fff;
+            border-left: 4px solid #4caf50;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .chat-message.assistant.verified {
+            border: 2px solid #4caf50;
+            background: #e8f5e9;
+        }
+        .chat-message .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .chat-message .header .role {
+            font-weight: 600;
+        }
+        .chat-message .header .time {
+            color: #999;
+        }
+        .chat-message .header .verified-badge {
+            color: #4caf50;
+            font-size: 12px;
+        }
+        .chat-message .content {
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        .chat-message .content code {
+            background: #263238;
+            color: #aed581;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 13px;
+        }
+        .chat-message .content pre {
+            background: #263238;
+            color: #aed581;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .chat-message .content pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .chat-message .content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        .chat-message .content th, .chat-message .content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .chat-message .content th {
+            background: #f2f2f2;
+            font-weight: 600;
+        }
+        .chat-message .actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+        .chat-message .actions button {
+            padding: 4px 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-message .actions button:hover {
+            background: #f5f5f5;
+        }
+        .stage-divider {
+            text-align: center;
+            margin: 20px auto;
+            max-width: 900px;
+        }
+        .stage-divider span {
+            background: #e0e0e0;
+            color: #666;
+            padding: 4px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        /* 输入区 */
+        .input-area {
+            background: #fff;
+            border-top: 1px solid #e0e0e0;
+            padding: 16px 24px;
+        }
+        .input-area textarea {
+            width: 100%;
+            min-height: 80px;
+            max-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .input-area textarea:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+        .input-area .input-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .input-area .hint {
+            font-size: 12px;
+            color: #999;
+        }
+        /* 弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        .modal .form-group {
+            margin-bottom: 14px;
+        }
+        .modal .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .modal .form-group input,
+        .modal .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .modal .form-group textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .modal .form-group .required {
+            color: #c62828;
+        }
+        .modal .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal .modal-actions button {
+            flex: 1;
+        }
+        .verify-box {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .verify-box h4 {
+            color: #e65100;
+            margin-bottom: 10px;
+        }
+        .verify-box ul {
+            margin-left: 20px;
+            font-size: 14px;
+            line-height: 2;
+        }
+        .hidden { display: none !important; }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-top-color: #1976d2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>🔬 AI学术工作台</h1>
+                <p>系统化使用大模型辅助科研</p>
+            </div>
+
+            <!-- API设置 -->
+            <div class="sidebar-section">
+                <h3>API 设置</h3>
+                <div class="form-group">
+                    <input type="text" id="apiBaseUrl" placeholder="API Base URL" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;font-size:13px;">
+                    <input type="password" id="apiKey" placeholder="API Key" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;font-size:13px;">
+                    <input type="text" id="apiModel" placeholder="模型名称" value="deepseek-chat" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;font-size:13px;">
+                    <button class="btn btn-secondary btn-small" onclick="saveApiConfig()" style="width:auto;">💾 保存配置</button>
+                </div>
+            </div>
+
+            <!-- 新建项目 -->
+            <div class="sidebar-section">
+                <button class="btn btn-primary" onclick="showNewProjectModal()">➕ 新建项目</button>
+            </div>
+
+            <!-- 项目列表 -->
+            <div class="sidebar-section">
+                <h3>项目列表</h3>
+                <div id="projectList"></div>
+            </div>
+
+            <!-- 当前项目信息 -->
+            <div class="sidebar-section" id="currentProjectSection" style="display:none;">
+                <h3>当前项目</h3>
+                <div class="current-project-info" id="currentProjectInfo"></div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content" id="mainContent">
+            <!-- 欢迎页 -->
+            <div class="welcome-page" id="welcomePage">
+                <h2>🎓 欢迎使用AI辅助学术研究工作台</h2>
+                <p>本工具专为<strong>生物信息学/生命科学研究生</strong>设计，帮助你在科研中系统化地使用大模型完成文献调研、方法对比、代码辅助和论文写作等任务。</p>
+                <p>核心价值是<strong>将零散的提问行为转化为标准化的可复用工作流</strong>。</p>
+                <table>
+                    <tr><th>阶段</th><th>用途</th></tr>
+                    <tr><td>📚 文献调研</td><td>快速锁定核心文献，发现研究空白</td></tr>
+                    <tr><td>⚖️ 方法对比</td><td>对比不同方法/工具的异同</td></tr>
+                    <tr><td>📝 方案设计</td><td>设计实验流程和对照组</td></tr>
+                    <tr><td>🔬 数据分析</td><td>辅助生成、调试、解释代码</td></tr>
+                    <tr><td>✍️ 论文写作</td><td>生成大纲、段落、PPT结构</td></tr>
+                </table>
+                <p style="font-size:14px;color:#999;margin-top:20px;">💡 提示：所有数据保存在浏览器本地存储中，保护研究隐私。<br>点击左侧「新建项目」开始你的第一个研究项目。</p>
+            </div>
+
+            <!-- 项目工作区 -->
+            <div class="workspace hidden" id="workspace">
+                <div class="workspace-header">
+                    <h2 id="projectTitle"></h2>
+                    <div class="meta" id="projectMeta"></div>
+                </div>
+
+                <!-- 阶段切换 -->
+                <div class="stage-bar" id="stageBar"></div>
+
+                <!-- 模板区 -->
+                <div class="template-area" id="templateArea">
+                    <h4>📋 提示词模板（点击自动填入输入框，填写 {{}} 中的占位符即可发送）</h4>
+                    <div class="template-list" id="templateList"></div>
+                </div>
+
+                <!-- 对话区 -->
+                <div class="chat-area" id="chatArea"></div>
+
+                <!-- 输入区 -->
+                <div class="input-area">
+                    <textarea id="chatInput" placeholder="在此输入内容，或从上方选择模板..."></textarea>
+                    <div class="input-actions">
+                        <span class="hint">支持 Markdown 格式，AI 回复将自动解析表格和代码块</span>
+                        <button class="btn btn-primary" onclick="sendMessage()" style="width:auto;" id="sendBtn">🚀 发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建项目弹窗 -->
+    <div class="modal-overlay hidden" id="newProjectModal">
+        <div class="modal">
+            <h3>新建项目</h3>
+            <div class="form-group">
+                <label>项目名称 <span class="required">*</span></label>
+                <input type="text" id="npName" placeholder="例如：蛋白质-RNA相分离预测">
+            </div>
+            <div class="form-group">
+                <label>研究主题 <span class="required">*</span></label>
+                <input type="text" id="npTopic" placeholder="简要描述研究主题">
+            </div>
+            <div class="form-group">
+                <label>核心关键词</label>
+                <input type="text" id="npKeywords" placeholder="例如：machine learning, phase separation">
+            </div>
+            <div class="form-group">
+                <label>已知核心文献（1-2篇）</label>
+                <textarea id="npPapers" placeholder="粘贴文献标题或DOI"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="createProject()">创建</button>
+                <button class="btn btn-secondary" onclick="hideNewProjectModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核查提醒弹窗 -->
+    <div class="modal-overlay hidden" id="verifyModal">
+        <div class="modal">
+            <h3>⚠️ 核查提醒</h3>
+            <div class="verify-box">
+                <h4>AI生成的内容可能存在不准确之处，请务必进行交叉验证：</h4>
+                <ul>
+                    <li>每篇推荐文献是否在 <strong>PubMed/Google Scholar</strong> 核实？</li>
+                    <li>推荐的工具/方法是否访问官网确认？</li>
+                    <li>关键数据和结论是否有可靠来源支撑？</li>
+                </ul>
+            </div>
+            <div class="form-group">
+                <label>核查备注（可选）</label>
+                <input type="text" id="verifyNote" placeholder="例如：PubMed确认3篇文献">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="confirmVerify()">✅ 确认已核查</button>
+                <button class="btn btn-secondary" onclick="skipVerify()">⏭️ 稍后核查</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置 ====================
+        const STAGES = [
+            { id: 'literature', name: '文献调研', icon: '📚' },
+            { id: 'comparison', name: '方法对比', icon: '⚖️' },
+            { id: 'design', name: '方案设计', icon: '📝' },
+            { id: 'analysis', name: '数据分析', icon: '🔬' },
+            { id: 'writing', name: '论文写作', icon: '✍️' }
+        ];
+
+        const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s.name]));
+
+        const TEMPLATES = {
+            literature: [
+                { name: '初筛检索', template: '我正在研究 {{研究主题}}。请帮我列出近{{年份}}年发表的、关于 {{关键词}} 的文献，按相关性排序，并简要说明每篇的核心贡献。请给出具体文献标题、作者、期刊和年份。' },
+                { name: '追踪后续', template: '在 {{已知文献标题}} 的基础上，有哪些后续工作或引用它的文献？请列出并说明它们做了哪些延伸或改进。' },
+                { name: '发现空白', template: '基于以上文献梳理，目前{{研究主题}}领域还存在哪些未解决的科学问题或研究空白？请列出3-5个，并说明每个问题的重要性。' }
+            ],
+            comparison: [
+                { name: '分类对比', template: '请将以下工具/方法按{{分类维度}}进行分类：{{工具列表}}。请生成一个对比表格，列包括：工具名称、方法类型、输入特征、输出结果、适用场景、局限性。' },
+                { name: '优劣势分析', template: '方法A {{方法A}} 和方法B {{方法B}} 各自的核心优势和劣势是什么？在{{我的具体场景}}下，哪个更适用？为什么？' },
+                { name: '技术澄清', template: '{{技术术语}}在{{具体方法}}中具体是什么意思？它在整个流程中起什么作用？请用通俗语言解释，并说明它对结果的影响。' }
+            ],
+            design: [
+                { name: '实验设计', template: '我想研究 {{研究主题}}，目标是 {{研究目标}}。请帮我设计一个完整的实验方案，包括：1) 样本/数据收集策略；2) 核心分析步骤；3) 预期结果；4) 潜在风险和替代方案。' },
+                { name: '流程图生成', template: '请将以下研究流程整理成结构化的步骤描述（可用于绘制流程图）：{{研究流程描述}}。请用层级编号列出每个步骤，并标注输入输出。' },
+                { name: '对照组设计', template: '我的实验处理是 {{实验处理}}，请帮我设计合适的对照组/基线，并说明如何评估处理效应。请列出需要控制的混杂因素。' }
+            ],
+            analysis: [
+                { name: '代码生成', template: '我想用Python做{{具体任务描述}}。请生成完整代码，每行添加注释说明功能，并注明需要安装的依赖包及版本。' },
+                { name: '代码调试', template: '以下代码运行时报错：{{粘贴错误信息}}。完整代码如下：{{粘贴代码}}。请分析错误原因，给出修正方案，并解释为什么这样改。' },
+                { name: '结果解读', template: '我的模型输出了以下结果：{{粘贴结果}}。请帮我解读：①这些指标分别代表什么？②模型表现如何？③下一步可以如何改进？' }
+            ],
+            writing: [
+                { name: '大纲生成', template: '我想写一篇关于{{主题}}的{{文献综述/研究论文}}，目标读者是{{导师/同行/跨学科}}。请生成一个详细大纲，包含一级标题和二级标题，并建议每个部分需要涵盖的核心内容。' },
+                { name: '段落扩展', template: '请将以下要点扩展为连贯的学术段落：{{粘贴要点}}。要求逻辑清晰、有论证层次，并建议可引用的文献类型。' },
+                { name: 'PPT结构', template: '基于以下研究内容：{{粘贴核心内容}}，请生成一个15分钟学术汇报的PPT结构，包含每页的标题、要点和配图建议。' }
+            ]
+        };
+
+        // ==================== 状态管理 ====================
+        let currentProject = null;
+        let currentStage = 'literature';
+        let pendingVerifyIndex = null;
+
+        // ==================== 初始化 ====================
+        function init() {
+            loadApiConfig();
+            renderProjectList();
+            renderStageBar();
+            if (currentProject) {
+                showWorkspace();
+            }
+        }
+
+        // ==================== API配置 ====================
+        function loadApiConfig() {
+            const cfg = JSON.parse(localStorage.getItem('apiConfig') || '{}');
+            document.getElementById('apiBaseUrl').value = cfg.baseUrl || '';
+            document.getElementById('apiKey').value = cfg.apiKey || '';
+            document.getElementById('apiModel').value = cfg.model || 'deepseek-chat';
+        }
+
+        function saveApiConfig() {
+            const cfg = {
+                baseUrl: document.getElementById('apiBaseUrl').value.trim(),
+                apiKey: document.getElementById('apiKey').value.trim(),
+                model: document.getElementById('apiModel').value.trim() || 'deepseek-chat'
+            };
+            localStorage.setItem('apiConfig', JSON.stringify(cfg));
+            alert('API配置已保存！');
+        }
+
+        function getApiConfig() {
+            return JSON.parse(localStorage.getItem('apiConfig') || '{}');
+        }
+
+        // ==================== 项目管理 ====================
+        function getAllProjects() {
+            const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+            return projects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        }
+
+        function saveProject(project) {
+            project.updatedAt = new Date().toISOString();
+            const projects = getAllProjects().filter(p => p.id !== project.id);
+            projects.push(project);
+            localStorage.setItem('projects', JSON.stringify(projects));
+        }
+
+        function createProject() {
+            const name = document.getElementById('npName').value.trim();
+            const topic = document.getElementById('npTopic').value.trim();
+            if (!name || !topic) {
+                alert('项目名称和研究主题为必填项');
+                return;
+            }
+            const project = {
+                id: 'proj_' + Date.now(),
+                name,
+                topic,
+                keywords: document.getElementById('npKeywords').value.trim(),
+                corePapers: document.getElementById('npPapers').value.trim(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                currentStage: 'literature',
+                history: [],
+                verificationNotes: {}
+            };
+            saveProject(project);
+            currentProject = project;
+            currentStage = 'literature';
+            hideNewProjectModal();
+            renderProjectList();
+            showWorkspace();
+        }
+
+        function loadProject(projectId) {
+            const projects = getAllProjects();
+            return projects.find(p => p.id === projectId) || null;
+        }
+
+        function deleteProject(projectId) {
+            if (!confirm('确定要删除这个项目吗？所有对话记录将丢失。')) return;
+            const projects = getAllProjects().filter(p => p.id !== projectId);
+            localStorage.setItem('projects', JSON.stringify(projects));
+            if (currentProject && currentProject.id === projectId) {
+                currentProject = null;
+                showWelcome();
+            }
+            renderProjectList();
+        }
+
+        function selectProject(projectId) {
+            const project = loadProject(projectId);
+            if (project) {
+                currentProject = project;
+                currentStage = project.currentStage || 'literature';
+                renderProjectList();
+                showWorkspace();
+            }
+        }
+
+        // ==================== 渲染 ====================
+        function renderProjectList() {
+            const list = document.getElementById('projectList');
+            const projects = getAllProjects();
+            if (projects.length === 0) {
+                list.innerHTML = '<p style="color:#999;font-size:13px;">暂无项目</p>';
+                return;
+            }
+            list.innerHTML = projects.map(p => `
+                <div class="project-item ${currentProject && currentProject.id === p.id ? 'active' : ''}" onclick="selectProject('${p.id}')">
+                    <span>${p.name}</span>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteProject('${p.id}')">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function renderStageBar() {
+            const bar = document.getElementById('stageBar');
+            bar.innerHTML = STAGES.map(s => `
+                <button class="stage-btn ${currentStage === s.id ? 'active' : ''}" onclick="switchStage('${s.id}')">
+                    ${s.icon} ${s.name}
+                </button>
+            `).join('');
+        }
+
+        function renderTemplates() {
+            const list = document.getElementById('templateList');
+            const templates = TEMPLATES[currentStage] || [];
+            list.innerHTML = templates.map((t, i) => `
+                <div class="template-chip" onclick="selectTemplate(${i})">📄 ${t.name}</div>
+            `).join('');
+        }
+
+        function renderChat() {
+            const area = document.getElementById('chatArea');
+            if (!currentProject || !currentProject.history.length) {
+                area.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无对话记录，从上方选择模板或输入内容开始提问</p>';
+                return;
+            }
+
+            let currentDisplayStage = null;
+            area.innerHTML = currentProject.history.map((msg, idx) => {
+                let html = '';
+                if (msg.stage !== currentDisplayStage) {
+                    currentDisplayStage = msg.stage;
+                    html += `<div class="stage-divider"><span>${STAGE_MAP[msg.stage] || msg.stage}</span></div>`;
+                }
+
+                const time = msg.timestamp ? msg.timestamp.slice(0, 16).replace('T', ' ') : '';
+                const verified = msg.verified;
+                const note = currentProject.verificationNotes && currentProject.verificationNotes[idx];
+
+                if (msg.role === 'user') {
+                    html += `
+                        <div class="chat-message user">
+                            <div class="header">
+                                <span class="role">👤 你</span>
+                                <span class="time">${time}</span>
+                            </div>
+                            <div class="content">${escapeHtml(msg.content)}</div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="chat-message assistant ${verified ? 'verified' : ''}">
+                            <div class="header">
+                                <span class="role">🤖 AI</span>
+                                <span class="time">${time}</span>
+                                ${verified ? '<span class="verified-badge">✅ 已核查</span>' : ''}
+                            </div>
+                            ${note ? `<div style="color:#4caf50;font-size:12px;margin-bottom:8px;">📝 核查备注：${escapeHtml(note)}</div>` : ''}
+                            <div class="content">${formatContent(msg.content)}</div>
+                            <div class="actions">
+                                <button onclick="copyMessage(${idx})">📋 复制</button>
+                                ${!verified ? `<button onclick="showVerifyModal(${idx})">✅ 标记已核查</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                return html;
+            }).join('');
+
+            // 滚动到底部
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ==================== 内容格式化 ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatContent(text) {
+            // 转义HTML
+            let html = escapeHtml(text);
+
+            // 代码块 ```...```
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre><code>${code}</code></pre>`;
+            });
+
+            // 行内代码 `...`
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 粗体 **...**
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+            // 斜体 *...*
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+            // 表格（简单处理）
+            if (html.includes('|')) {
+                const lines = html.split('\n');
+                let inTable = false;
+                let tableHtml = '';
+                let tableRows = [];
+
+                for (const line of lines) {
+                    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+                        tableRows.push(line);
+                    } else {
+                        if (tableRows.length > 0) {
+                            tableHtml += renderTable(tableRows);
+                            tableRows = [];
+                        }
+                        tableHtml += line + '\n';
+                    }
+                }
+                if (tableRows.length > 0) {
+                    tableHtml += renderTable(tableRows);
+                }
+                html = tableHtml;
+            }
+
+            // 换行
+            html = html.replace(/\n/g, '<br>');
+
+            return html;
+        }
+
+        function renderTable(rows) {
+            if (rows.length < 2) return rows.join('<br>');
+            // 过滤分隔行（包含 --- 的行）
+            const dataRows = rows.filter(r => !r.replace(/[|\-\s]/g, ''));
+            if (dataRows.length < 1) return rows.join('<br>');
+
+            let html = '<table>';
+            dataRows.forEach((row, i) => {
+                const cells = row.split('|').filter(c => c.trim() !== '').map(c => c.trim());
+                const tag = i === 0 ? 'th' : 'td';
+                html += '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+            });
+            html += '</table>';
+            return html;
+        }
+
+        // ==================== 交互 ====================
+        function switchStage(stageId) {
+            currentStage = stageId;
+            if (currentProject) {
+                currentProject.currentStage = stageId;
+                saveProject(currentProject);
+            }
+            renderStageBar();
+            renderTemplates();
+            renderChat();
+        }
+
+        function selectTemplate(index) {
+            const templates = TEMPLATES[currentStage] || [];
+            if (templates[index]) {
+                document.getElementById('chatInput').value = templates[index].template;
+            }
+        }
+
+        function showWelcome() {
+            document.getElementById('welcomePage').classList.remove('hidden');
+            document.getElementById('workspace').classList.add('hidden');
+            document.getElementById('currentProjectSection').style.display = 'none';
+        }
+
+        function showWorkspace() {
+            document.getElementById('welcomePage').classList.add('hidden');
+            document.getElementById('workspace').classList.remove('hidden');
+            document.getElementById('currentProjectSection').style.display = 'block';
+
+            document.getElementById('projectTitle').textContent = currentProject.name;
+            document.getElementById('projectMeta').textContent = `研究主题：${currentProject.topic} | 当前阶段：${STAGE_MAP[currentStage]}`;
+
+            document.getElementById('currentProjectInfo').innerHTML = `
+                <strong>名称：</strong>${currentProject.name}<br>
+                <strong>主题：</strong>${currentProject.topic}<br>
+                ${currentProject.keywords ? `<strong>关键词：</strong>${currentProject.keywords}<br>` : ''}
+                ${currentProject.corePapers ? `<strong>核心文献：</strong>${currentProject.corePapers.substring(0, 100)}${currentProject.corePapers.length > 100 ? '...' : ''}<br>` : ''}
+            `;
+
+            renderStageBar();
+            renderTemplates();
+            renderChat();
+        }
+
+        // ==================== 消息操作 ====================
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const content = input.value.trim();
+            if (!content) return;
+            if (!currentProject) {
+                alert('请先创建或选择一个项目');
+                return;
+            }
+
+            const cfg = getApiConfig();
+            if (!cfg.baseUrl || !cfg.apiKey) {
+                alert('请先配置API地址和密钥');
+                return;
+            }
+
+            // 添加用户消息
+            currentProject.history.push({
+                role: 'user',
+                content,
+                stage: currentStage,
+                timestamp: new Date().toISOString(),
+                verified: false
+            });
+            saveProject(currentProject);
+            input.value = '';
+            renderChat();
+
+            // 调用API
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>思考中...';
+
+            try {
+                const messages = currentProject.history.map(m => ({
+                    role: m.role,
+                    content: m.content
+                }));
+
+                const baseUrl = cfg.baseUrl.replace(/\/$/, '');
+                const apiUrl = baseUrl.includes('/v1/chat/completions') ? baseUrl : baseUrl + '/v1/chat/completions';
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + cfg.apiKey
+                    },
+                    body: JSON.stringify({
+                        model: cfg.model || 'deepseek-chat',
+                        messages: messages,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API返回HTTP ' + response.status);
+                }
+
+                const data = await response.json();
+                const assistantContent = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+
+                if (assistantContent) {
+                    currentProject.history.push({
+                        role: 'assistant',
+                        content: assistantContent,
+                        stage: currentStage,
+                        timestamp: new Date().toISOString(),
+                        verified: false
+                    });
+                    saveProject(currentProject);
+                    renderChat();
+
+                    // 文献调研和方法对比阶段自动触发核查提醒
+                    if (currentStage === 'literature' || currentStage === 'comparison') {
+                        pendingVerifyIndex = currentProject.history.length - 1;
+                        showVerifyModal(pendingVerifyIndex);
+                    }
+                }
+            } catch (err) {
+                alert('API调用失败：' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 发送';
+            }
+        }
+
+        function copyMessage(index) {
+            const msg = currentProject.history[index];
+            if (msg) {
+                navigator.clipboard.writeText(msg.content).then(() => {
+                    alert('已复制到剪贴板');
+                }).catch(() => {
+                    // 降级方案
+                    const textarea = document.createElement('textarea');
+                    textarea.value = msg.content;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    alert('已复制到剪贴板');
+                });
+            }
+        }
+
+        // ==================== 核查提醒 ====================
+        function showVerifyModal(index) {
+            pendingVerifyIndex = index;
+            document.getElementById('verifyModal').classList.remove('hidden');
+        }
+
+        function hideVerifyModal() {
+            document.getElementById('verifyModal').classList.add('hidden');
+            pendingVerifyIndex = null;
+        }
+
+        function confirmVerify() {
+            if (pendingVerifyIndex !== null && currentProject) {
+                const note = document.getElementById('verifyNote').value.trim();
+                currentProject.history[pendingVerifyIndex].verified = true;
+                if (!currentProject.verificationNotes) currentProject.verificationNotes = {};
+                currentProject.verificationNotes[pendingVerifyIndex] = note;
+                saveProject(currentProject);
+                renderChat();
+            }
+            document.getElementById('verifyNote').value = '';
+            hideVerifyModal();
+        }
+
+        function skipVerify() {
+            document.getElementById('verifyNote').value = '';
+            hideVerifyModal();
+        }
+
+        // ==================== 弹窗控制 ====================
+        function showNewProjectModal() {
+            document.getElementById('newProjectModal').classList.remove('hidden');
+        }
+
+        function hideNewProjectModal() {
+            document.getElementById('newProjectModal').classList.add('hidden');
+            document.getElementById('npName').value = '';
+            document.getElementById('npTopic').value = '';
+            document.getElementById('npKeywords').value = '';
+            document.getElementById('npPapers').value = '';
+        }
+
+        // ==================== 键盘事件 ====================
+        document.getElementById('chatInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                sendMessage();
+            }
+        });
+
+        // 点击弹窗外部关闭
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+        });
+
+        // ==================== 启动 ====================
+        init();
+    </script>
+</body>
+</html>
